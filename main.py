@@ -1,9 +1,9 @@
 from operator import itemgetter
-
+import numpy as np
 
 def read_input(fname):
     f = open(fname, "r")
-    contents = f.read().split("\n")
+    contents = f.read().strip().split("\n")
     f.close()
     return contents
 
@@ -156,3 +156,329 @@ def day6():
             print(i+14)
             break
 
+
+def day7():
+
+    class File:
+        def __init__(self, name, size, parent):
+            self.name = name
+            self.size = size
+            self.sub_files = []
+            self.parent = parent
+
+        def get_size(self):
+            if self.size>0:
+                return self.size
+            else:
+                size = 0
+                for file in self.sub_files:
+                    if type(file) == File:
+                        print(file.name)
+                        size+=file.get_size()
+                return size
+    commands = read_input("day7.txt")
+    current_directory = File("None", 0, None)
+    directories = []
+    for line in commands:
+        if line == "":
+            break
+        parts = line.split(" ")
+        if line.startswith("$"):
+            if parts[1] == "cd":
+                if parts[2] == "..":
+                    current_directory = current_directory.parent
+                else:
+                    found_match = False
+                    for file in current_directory.sub_files:
+                        if file.name == parts[2]:
+                            current_directory = file
+                            found_match = True
+                    if not found_match:
+                        current_directory = File(parts[2], 0 , current_directory)
+                        directories.append(current_directory)
+                        print("changing directory to a place that we didnt know about pre $ cd")
+        else:
+            if parts[1] not in list(map(lambda i: i.name, current_directory.sub_files)):
+                if line.startswith("dir"):
+                    new_dir = File(parts[1], 0, current_directory)
+                    directories.append(new_dir)
+                    current_directory.sub_files.append(new_dir)
+                else:
+                    current_directory.sub_files.append(File(parts[1], int(parts[0]), current_directory))
+    small_ones_total = 0
+    for directory in directories:
+        if directory.name == "/":
+            current_file_volume = directory.get_size()
+        if directory.get_size() <= 100000:
+            print(directory.name)
+            small_ones_total += directory.get_size()
+    print(small_ones_total)
+
+    diskspace = 70000000
+    need_free = 30000000
+    dir_delete_min = need_free - (diskspace - current_file_volume)
+    current_min = 70000000000
+    for directory in directories:
+        if directory.get_size() >= dir_delete_min and directory.get_size() < current_min:
+            current_min = directory.get_size()
+    print(current_min)
+
+def day8():
+
+    def check_vis(tree_val, list_of_other_trees):
+        for other_tree in list_of_other_trees:
+            if other_tree >= tree_val:
+                return False
+        return True
+
+    lines = read_input("day8.txt")[:-1]
+    visible_grid = [[False for _ in range(len(lines))] for _ in range(len(lines[0]))]
+    for y in range(len(lines)):
+        for x in range(len(lines[0])):
+            tree_val = int(lines[y][x])
+            L = list(map(int, list(lines[y][:x])))
+            R = list(map(int, list(lines[y][x+1:])))
+            U = list(map(lambda i: int(i[x]), lines[:y]))
+            D = list(map(lambda i: int(i[x]), lines[y+1:]))
+            for dir in L,R,U,D:
+                dir.append(-1)
+
+            if tree_val > max(L) or tree_val > max(R) or tree_val > max(U) or tree_val > max(D):
+                visible_grid[y][x] = True
+    vis_count = 0
+    for row in visible_grid:
+        for tree in row:
+            if tree:
+                vis_count += 1
+    print(vis_count)
+
+    # part 2
+    # try 1 1947582
+    # try 2 2042586 ?
+    # try 3 291840
+
+    def calc_score(x,y):
+        tree_height = int(lines[y][x])
+        score = 1
+        L = list(map(int, list(lines[y][:x])))[::-1]
+        R = list(map(int, list(lines[y][x + 1:])))
+        U = list(map(lambda i: int(i[x]), lines[:y]))[::-1]
+        D = list(map(lambda i: int(i[x]), lines[y + 1:]))
+        for dir in L,R,U,D:
+            dir_score = 0
+            for dir_tree in dir:
+                dir_score+=1
+                if dir_tree >= tree_height:
+                    break
+            score *= dir_score
+        return score
+
+
+    best_score = 0
+    for y in range(len(lines)):
+        for x in range(len(lines[0])):
+            tree_score = calc_score(x,y)
+            best_score = tree_score if tree_score > best_score else best_score
+    print(best_score)
+
+
+def day9():
+    h = (0, 0)
+    t = (0, 0)
+    visited = set()
+    moves = read_input("day9.txt")
+    dirs = {"R": (1,0), "U": (0,1), "L": (-1,0), "D": (0,-1)}
+    for move in moves:
+        if move == "":
+            break
+        direction, steps = move.split(" ")
+        for step in range(int(steps)):
+            h = (h[0]+dirs[direction][0], h[1]+dirs[direction][1])
+            rope_vector = (h[0]-t[0],h[1]-t[1])
+            if abs(rope_vector[0]) == 2 or abs(rope_vector[1]) == 2:
+                tail_move = tuple(map(lambda i: 0 if rope_vector[i]==0 else rope_vector[i]/abs(rope_vector[i]), [0,1]))
+                t = (t[0]+tail_move[0],t[1]+tail_move[1])
+                visited.add(t)
+    print(len(visited))
+    visited = set()
+    class Knot:
+        def __init__(self):
+            self.position = (0,0)
+
+        def move(self, direction):
+            self.position = (self.position[0] + direction[0], self.position[1] + direction[1])
+
+    knots = [Knot() for _ in range(10)]
+
+    for move in moves:
+        if move == "":
+            break
+        direction, steps = move.split(" ")
+        for step in range(int(steps)):
+            knots[0].move(dirs[direction])
+            for i in range(9):
+                cur_knot = knots[i+1]
+                last_knot = knots[i]
+                rope_vector = (last_knot.position[0] - cur_knot.position[0], last_knot.position[1] - cur_knot.position[1])
+                if abs(rope_vector[0]) == 2 or abs(rope_vector[1]) == 2:
+                    tail_move = tuple(
+                        map(lambda i: 0 if rope_vector[i] == 0 else rope_vector[i] / abs(rope_vector[i]), [0, 1]))
+                    cur_knot.move(tail_move)
+            visited.add(knots[9].position)
+
+
+    print(len(visited))
+
+
+def day10():
+    commands = read_input("day10.txt")
+    cycle = 0
+    X = 1
+    current_command = None
+    wait = False
+    signal_strengths = []
+    image = ""
+    while True:
+        cycle+=1
+        current_draw_pos = (cycle - 1)%40
+        if X-1 <= current_draw_pos <= X+1 and cycle<=240:
+            image+="#"
+        elif cycle<=240:
+            image+="."
+        if cycle%40 == 20:
+            signal_strength = X*cycle
+            signal_strengths.append(signal_strength)
+        if cycle%40 == 0:
+            image+="\n"
+        if not current_command:
+            current_command = commands.pop(0)
+            if current_command.startswith("addx"):
+                wait = True
+        if current_command == "noop":
+            current_command = None
+        elif current_command.startswith("addx"):
+            if not wait:
+                X += int(current_command.split(" ")[1])
+                current_command = None
+            else:
+                wait = False
+
+        if len(commands) == 0 and not wait:
+            break
+    print(sum(signal_strengths[0:6]))
+    print(image)
+    # part 1 try 1: 14680 (too high)
+    # part 2 ZUPRFECL
+
+def day11():
+    f = open("day11.txt", "r")
+    contents = f.read().split("\n\n")
+    f.close()
+    monkey_texts = list(map(lambda i: i.split("\n"), contents))
+
+    part_2 = True
+
+    class Monkey:
+        def __init__(self, input_lists):
+            self.items = list(map(int, input_lists[1].strip().strip("Starting items: ").split(", ")))
+            self.operations = input_lists[2].strip().split(" ")[-2:]
+            self.test_divisor = int(input_lists[3].split(" ")[-1])
+            self.true_destination = int(input_lists[4].split(" ")[-1])
+            self.false_destination = int(input_lists[5].split(" ")[-1])
+            self.inspections_total = 0
+            self.other_monkeys = []
+            self.part_2_divisor = 1
+
+        def inspect(self):
+            self.inspections_total += 1
+            looking_at = self.items.pop(0)
+            if self.operations[0] == '+':
+                looking_at += int(self.operations[1])
+            elif self.operations[0] == '*':
+                looking_at = looking_at * int(self.operations[1]) if self.operations[1] != "old" else looking_at*looking_at
+            if not part_2:
+                looking_at = looking_at//3
+            else:
+                looking_at = looking_at%part_2_divisor
+            return looking_at
+
+        def check_item(self, item):
+            if item%self.test_divisor == 0:
+                return self.true_destination
+            else:
+                return self.false_destination
+
+        def take_turn(self):
+            while len(self.items) > 0:
+                throwing = self.inspect()
+                destination = self.check_item(throwing)
+                self.other_monkeys[destination].items.append(throwing)
+
+
+    monkeys = []
+    for monkey_text in monkey_texts:
+        monkeys.append(Monkey(monkey_text))
+
+
+    part_2_divisor = 1
+    for monkey in monkeys:
+        monkey.other_monkeys = monkeys
+        part_2_divisor *= monkey.test_divisor
+
+    for monkey in monkeys:
+        monkey.part_2_divisor = part_2_divisor
+
+    for round in range(20 if not part_2 else 10000):
+        for monkey in monkeys:
+            monkey.take_turn()
+
+    top_monkeys = sorted(list(map(lambda i: i.inspections_total, monkeys)), reverse=True)
+    monkey_business = top_monkeys[0] * top_monkeys[1]
+    print(monkey_business)
+    # part 1 try 1: 55224 too low
+    # part 2 try 2 58322
+
+def day12():
+    heightmap = read_input("day12.txt")
+    def get_height(x,y):
+        if heightmap[y][x] == "S":
+            return "a"
+        elif heightmap[y][x] == "E":
+            return "z"
+        else:
+            return heightmap[y][x]
+
+    path_map = {}
+    for y in range(len(heightmap)):
+        for x in range(len(heightmap[0])):
+            if heightmap[y][x] == "S":
+                start = (x,y)
+            elif heightmap[y][x] == "E":
+                end = (x,y)
+            path_map[(x,y)] = []
+            for direction in [[0,1],[1,0],[-1,0],[0,-1]]:
+                if 0<=x+direction[0]<len(heightmap[0]) and\
+                        0<=y+direction[1]<len(heightmap):
+                    if ord(get_height(x,y))+1 <= ord(get_height(x+direction[0],y+direction[1])):
+                        path_map[(x,y)].append((x+direction[0],y+direction[1]))
+    distances = {start: 0}
+    queue = [start]
+    seen = set()
+    counter = 0
+    while len(queue)>0:
+        current = queue.pop(0)
+        for adj_cell in path_map[current]:
+            if adj_cell in distances.keys():
+                if distances[adj_cell] + 1 < distances[current]:
+                    distances[current] = distances[adj_cell] + 1
+            else:
+                distances[adj_cell] = distances[current] + 1
+                queue.append(adj_cell)
+            if current == end:
+                print(distances[end])
+    print(distances[end])
+
+
+
+
+day12()
