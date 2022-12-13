@@ -457,9 +457,8 @@ def day12():
                 end = (x,y)
             path_map[(x,y)] = []
             for direction in [[0,1],[1,0],[-1,0],[0,-1]]:
-                if 0<=x+direction[0]<len(heightmap[0]) and\
-                        0<=y+direction[1]<len(heightmap):
-                    if ord(get_height(x,y))+1 <= ord(get_height(x+direction[0],y+direction[1])):
+                if 0<=x+direction[0]<len(heightmap[0]) and 0<=y+direction[1]<len(heightmap):
+                    if ord(get_height(x,y))+1 >= ord(get_height(x+direction[0],y+direction[1])):
                         path_map[(x,y)].append((x+direction[0],y+direction[1]))
     distances = {start: 0}
     queue = [start]
@@ -467,18 +466,148 @@ def day12():
     counter = 0
     while len(queue)>0:
         current = queue.pop(0)
+        seen.add(current)
         for adj_cell in path_map[current]:
             if adj_cell in distances.keys():
-                if distances[adj_cell] + 1 < distances[current]:
-                    distances[current] = distances[adj_cell] + 1
+                distances[adj_cell] = min([distances[adj_cell],distances[current]+1])
             else:
                 distances[adj_cell] = distances[current] + 1
                 queue.append(adj_cell)
             if current == end:
                 print(distances[end])
     print(distances[end])
+    print(f"{len(seen)}/{len(heightmap) * len(heightmap[0])}")
+
+def day12part2():
+    heightmap = read_input("day12.txt")
+
+    def get_height(x, y):
+        if heightmap[y][x] == "S":
+            return "a"
+        elif heightmap[y][x] == "E":
+            return "z"
+        else:
+            return heightmap[y][x]
+
+    path_map = {}
+    for y in range(len(heightmap)):
+        for x in range(len(heightmap[0])):
+            if heightmap[y][x] == "E":
+                end = (x,y)
+            path_map[(x,y)] = []
+            for direction in [[0,1],[1,0],[-1,0],[0,-1]]:
+                if 0<=x+direction[0]<len(heightmap[0]) and 0<=y+direction[1]<len(heightmap):
+                    if ord(get_height(x, y)) <= ord(get_height(x+direction[0],y+direction[1]))+1:
+                        path_map[(x,y)].append((x+direction[0],y+direction[1]))
+    distances = {end: 0}
+    queue = [end]
+    dist = 999999
+    seen = set()
+    while len(queue) > 0:
+        current = queue.pop(0)
+        seen.add(current)
+        for adj_cell in path_map[current]:
+            current_height = get_height(current[0],current[1])
+            if adj_cell in distances.keys():
+                if distances[adj_cell] > distances[current] + 1:
+                    distances[adj_cell] = distances[current] + 1
+                    queue.append(adj_cell)
+            else:
+                distances[adj_cell] = distances[current] + 1
+                queue.append(adj_cell)
+        if get_height(current[0],current[1]) == "a" and distances[current] < dist:
+            dist = distances[current]
+            print(dist)
+    print(f"{len(seen)}/{len(heightmap)*len(heightmap[0])}")
+
+def day13():
+    data = read_input("day13.txt")
+    pairs = []
+    pair = []
+    for packet in data:
+        if len(pair)<2 and packet != "":
+            pair.append(eval(packet))
+        elif len(pair)==2:
+            pairs.append(pair)
+            pair = []
+    pairs.append(pair)
+    index_sum = 0
+    index = 0
+
+
+    def test(a,b):
+        if type(a)==int and type(b)==int:
+            if a<b:
+                return "PASS"
+            elif a==b:
+                return "CONTINUE"
+            else:
+                return "FAIL"
+        elif type(a) == list and type(b) == list:
+            comparing = True
+            i=0
+            while comparing:
+                if i==len(a) and i==len(b):
+                    return "CONTINUE"
+                elif i==len(a) and i<len(b):
+                    return "PASS"
+                elif i<len(a) and i==len(b):
+                    return "FAIL"
+                else:
+                    subresult = test(a[i],b[i])
+                    if subresult == "CONTINUE":
+                        i+=1
+                    else:
+                        return subresult
+
+        else:
+            a = [a] if type(a) == int else a
+            b = [b] if type(b) == int else b
+            return test(a, b)
+
+    organized_packets = []
+    for pair in pairs:
+        index+=1
+        if test(pair[0],pair[1]) == "PASS":
+            index_sum += index
+            organized_packets.append(pair[0])
+            organized_packets.append(pair[1])
+        else:
+            organized_packets.append(pair[1])
+            organized_packets.append(pair[0])
+
+    organized_packets.append([[2]])
+    organized_packets.append([[6]])
+
+    still_solving = True
+    while still_solving:
+        still_solving = False
+        for i in range(len(organized_packets)-1):
+            if test(organized_packets[i],organized_packets[i+1]) == "FAIL":
+                test_len = len(organized_packets)
+                a = organized_packets[i]
+                b = organized_packets[i+1]
+                organized_packets[i+1] = a.copy()
+                organized_packets[i] = b.copy()
+                if test_len != len(organized_packets):
+                    print("packet recomposition broken")
+                still_solving = True
+    decoder_key = 1
+    for i in range(len(organized_packets)-1):
+        if test(organized_packets[i],organized_packets[i+1]) == "FAIL":
+            print("Didnt sort")
+        elif organized_packets[i] == [[2]] or organized_packets[i] == [[6]]:
+            decoder_key*=i+1
+    print(decoder_key)
+
+
+    print(f"{index_sum}/{sum(list(range(1,len(pairs)+1)))}")
+
+    # part 1 try 1 594
+    # part 1 try 2 334 too low
+    # part 1 try 3 5693 too low
 
 
 
 
-day12()
+day13()
