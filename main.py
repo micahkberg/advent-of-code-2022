@@ -610,4 +610,39 @@ def day13():
 
 
 
-day13()
+
+def day15():
+    sensors = read_input("day15.txt")
+    cant_be = 0
+    target_row = 2000000
+    on_target_row = set()
+    ranges = []
+    for sensor in sensors:
+        parts = sensor.split(" ")
+        sensor_pos = (int(parts[2].strip("x=,")),int(parts[3].strip("y=:")))
+        beacon_pos = (int(parts[8].strip("x=,")),int(parts[9].strip("y=")))
+        man_dist = abs(sensor_pos[0]-beacon_pos[0])+abs(sensor_pos[1]-beacon_pos[1])
+        if abs(sensor_pos[1]-target_row)<=man_dist:
+            excess = man_dist - abs(sensor_pos[1]-target_row)
+            new_range = (sensor_pos[0]-excess,sensor_pos[0]+excess)
+            ranges.append(new_range)
+        if beacon_pos[1]==target_row:
+            on_target_row.add(beacon_pos[0])
+    ranges.sort()
+    for i in range(len(ranges)):
+        for j in range(i+1,len(ranges)):
+            if ranges[i][1]>=ranges[j][0]:
+                ranges[j] = (ranges[i][1]+1, ranges[j][1])
+        if ranges[i][0]<=ranges[i][1]:
+            cant_be+= ranges[i][1]-ranges[i][0]+1
+    cant_be -= len(on_target_row)
+    print(cant_be)
+    # part 1 try 1 4999656 too low, double counting beacons and not correctly evaluating overlapping segments
+    # part 1 try 2 5374697 too high, forgot to take off test row value
+    # part 1 try 3 5142231
+
+
+
+
+
+day15()
