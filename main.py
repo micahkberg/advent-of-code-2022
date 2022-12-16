@@ -643,6 +643,29 @@ def day15():
 
 
 
+def day16():
+    tunnel_info = read_input("day16.txt")
+    tunnels = dict()
+
+    for line in tunnel_info:
+        new_tunnel = dict()
+        new_tunnel["name"] = line.split(" ")[1]
+        new_tunnel["rate"] = int(line.split(" ")[4].strip("rate=;"))
+        new_tunnel["connections"] = list(map(lambda i: i.strip(","), line.split(" ")[9:]))
+        tunnels[new_tunnel["name"]] = new_tunnel
+    important_valves = []
+    for tunnel in tunnels.keys():
+        if tunnels[tunnel]["rate"] > 0:
+            important_valves.append(tunnel)
+    print(important_valves)
+    start = "AA"
+    next_list = {"AA"}
+    distances = {"AA":0}
+    while len(next_list) > 0:
+        current_valve = next_list.pop(0)
 
 
-day15()
+
+
+
+day16()
