@@ -1,5 +1,6 @@
 from operator import itemgetter
 import numpy as np
+import itertools
 
 def read_input(fname):
     f = open(fname, "r")
@@ -608,6 +609,211 @@ def day13():
     # part 1 try 3 5693 too low
 
 
+def day14():
+    rock_paths = read_input("day14.txt")
+    part2 = True
+    # draw rocks:
+    rock_positions = set()
+    max_x = 500
+    min_x = 500
+    max_y = 50
+    min_y = 10
+
+    for path in rock_paths:
+        path_steps = list(map(lambda i: i.split(","), path.split(" -> ")))
+        # too lazy to figure out the nested map to make these all tupled ints
+        for i in range(len(path_steps)):
+            path_steps[i] = tuple(map(int, path_steps[i]))
+
+        for step_n in range(len(path_steps)-1):
+            current_step = path_steps[step_n]
+            next_step = path_steps[step_n+1]
+            rock_positions.add(next_step)
+            travel_vector = (next_step[0]-current_step[0],next_step[1]-current_step[1])
+            for i in range(0,sum(travel_vector),sum(travel_vector)//abs(sum(travel_vector))):
+                if travel_vector[0]==0:
+                    new_coord = (current_step[0],current_step[1]+i)
+                else:
+                    new_coord = (current_step[0]+i,current_step[1])
+                rock_positions.add(new_coord)
+                if new_coord[0] > max_x:
+                    max_x = new_coord[0]
+                elif new_coord[0] < min_x:
+                    min_x = new_coord[0]
+                if new_coord[1] < max_y:
+                    max_y = new_coord[1]
+                elif new_coord[1] > min_y:
+                    min_y = new_coord[1]
+
+
+
+
+    sand_positions = set()
+    Sand_pouring = True
+
+    def can_move(pos):
+        if pos[1]==min_y+1 and part2:
+            return False
+        elif (pos[0],pos[1]+1) not in rock_positions and (pos[0],pos[1]+1) not in sand_positions:
+            return (pos[0], pos[1]+1)
+        elif (pos[0] -1 ,pos[1]+1) not in rock_positions and (pos[0] - 1 ,pos[1]+1) not in sand_positions:
+            return (pos[0] - 1 , pos[1] + 1)
+        elif (pos[0] + 1 ,pos[1]+1) not in rock_positions and (pos[0] + 1 ,pos[1]+1) not in sand_positions:
+            return (pos[0] + 1 , pos[1] + 1)
+        else:
+            return False
+
+    # draw sand castle
+
+    def view(cur_sand = None):
+        if not cur_sand:
+            y1 = max_y-15
+            y2 = min_y+5
+            x1 = min_x-5
+            x2 = max_x+5
+        else:
+            y1 = cur_sand[1]-5
+            y2 = cur_sand[1]+5
+            x1 = cur_sand[0]-5
+            x2 = cur_sand[0]+5
+        for y in range(y1,y2):
+            line = ""
+            for x in range(x1,x2):
+                if (x,y) in rock_positions:
+                    line+="#"
+                elif (x,y) in sand_positions:
+                    line+="O"
+                elif (x,y) == cur_sand:
+                    line+="~"
+                else:
+                    line+="."
+            print(line)
+        print("\n")
+
+    while Sand_pouring:
+        sand_position = (500,0)
+        in_abyss = False
+        while can_move(sand_position):
+            sand_position = can_move(sand_position)
+            #view(sand_position)
+            if sand_position[1]>min_y and not part2:
+                in_abyss = True
+                break
+        if not in_abyss:
+            sand_positions.add(sand_position)
+        elif in_abyss:
+            break
+        elif (500,0) in sand_positions:
+            break
+
+        if len(sand_positions)%100 == 0:
+            #view()
+            print(len(sand_positions))
+            pass
+    print(len(sand_positions))
+    # part 1 try 1 595, too low
+
+
+
+def day14_less_brute_force():
+
+    # i think maybe tracking all the sand falling so much is probably too slow,
+    # we can just paint down since we know what sand will look like when its not moving (i did watch my view() a bunch)
+
+    rock_paths = read_input("day14.txt")
+
+    # draw rocks:
+    rock_positions = set()
+    sand_positions = {(500,0)}
+    max_x = 500
+    min_x = 500
+    max_y = 50
+    min_y = 10
+
+    for path in rock_paths:
+        path_steps = list(map(lambda i: i.split(","), path.split(" -> ")))
+        # too lazy to figure out the nested map to make these all tupled ints
+        for i in range(len(path_steps)):
+            path_steps[i] = tuple(map(int, path_steps[i]))
+
+        for step_n in range(len(path_steps) - 1):
+            current_step = path_steps[step_n]
+            next_step = path_steps[step_n + 1]
+            rock_positions.add(next_step)
+            travel_vector = (next_step[0] - current_step[0], next_step[1] - current_step[1])
+            for i in range(0, sum(travel_vector), sum(travel_vector) // abs(sum(travel_vector))):
+                if travel_vector[0] == 0:
+                    new_coord = (current_step[0], current_step[1] + i)
+                else:
+                    new_coord = (current_step[0] + i, current_step[1])
+                rock_positions.add(new_coord)
+                if new_coord[0] > max_x:
+                    max_x = new_coord[0]
+                elif new_coord[0] < min_x:
+                    min_x = new_coord[0]
+                if new_coord[1] < max_y:
+                    max_y = new_coord[1]
+                elif new_coord[1] > min_y:
+                    min_y = new_coord[1]
+
+
+    def can_move(pos):
+        if pos[1] == min_y + 1:
+            return False
+        elif (pos[0], pos[1] + 1) not in rock_positions and (pos[0], pos[1] + 1) not in sand_positions:
+            return (pos[0], pos[1] + 1)
+        elif (pos[0] - 1, pos[1] + 1) not in rock_positions and (pos[0] - 1, pos[1] + 1) not in sand_positions:
+            return (pos[0] - 1, pos[1] + 1)
+        elif (pos[0] + 1, pos[1] + 1) not in rock_positions and (pos[0] + 1, pos[1] + 1) not in sand_positions:
+            return (pos[0] + 1, pos[1] + 1)
+        else:
+            return False
+
+    def view(cur_sand=None):
+        if not cur_sand:
+            y1 = -5
+            y2 = min_y + 5
+            x1 = min_x - 5
+            x2 = max_x + 5
+        else:
+            y1 = cur_sand[1] - 5
+            y2 = cur_sand[1] + 5
+            x1 = cur_sand[0] - 5
+            x2 = cur_sand[0] + 5
+        for y in range(y1, y2):
+            line = ""
+            for x in range(x1, x2):
+                if (x, y) in rock_positions:
+                    line += "#"
+                elif (x, y) in sand_positions:
+                    line += "O"
+                elif (x, y) == cur_sand:
+                    line += "~"
+                else:
+                    line += "."
+            print(line)
+        print("\n")
+
+    new_sands = {(500, 0)}
+    #view()
+    while len(new_sands) > 0:
+        cur_sand = new_sands.pop()
+        while can_move(cur_sand):
+            new_sand = can_move(cur_sand)
+            new_sands.add(new_sand)
+            sand_positions.add(new_sand)
+        if len(sand_positions) % 100 == 0:
+            # view()
+            print(f"to simulate: {len(new_sands)}. total sand: {len(sand_positions)}")
+            pass
+       #view()
+
+    view()
+    print(len(sand_positions))
+
+    # part 1 try 1 595, too low
+    # part 2 try 1 24590, too high
+
 
 
 
@@ -617,6 +823,28 @@ def day15():
     target_row = 2000000
     on_target_row = set()
     ranges = []
+
+    class Zone:
+        def __init__(self, circle_dict):
+            self.center = circle_dict["center"]
+            self.radius = circle_dict["radius"]
+
+    def dist(a,b):
+        return abs(a.center[0]-b.center[0]) + abs(a.center[1]-b.center[1])
+
+    def intersect(a,b):
+        if dist(a,b) < a.radius+b.radius:
+            return True
+        else:
+            return False
+
+    def adjacent(a,b):
+        if dist(a,b) == a.radius+b.radius:
+            return True
+        else:
+            return False
+
+
     for sensor in sensors:
         parts = sensor.split(" ")
         sensor_pos = (int(parts[2].strip("x=,")),int(parts[3].strip("y=:")))
@@ -641,7 +869,35 @@ def day15():
     # part 1 try 2 5374697 too high, forgot to take off test row value
     # part 1 try 3 5142231
 
+    # going to try and search along the perimeters of each zone
+    circles = []
+    for sensor in sensors:
+        parts = sensor.split(" ")
+        sensor_pos = (int(parts[2].strip("x=,")),int(parts[3].strip("y=:")))
+        beacon_pos = (int(parts[8].strip("x=,")),int(parts[9].strip("y=")))
+        man_dist = abs(sensor_pos[0] - beacon_pos[0]) + abs(sensor_pos[1] - beacon_pos[1])
+        new_circle = {"center": sensor_pos, "radius": man_dist}
+        circles.append(Zone(new_circle))
 
+
+    for quadruble in itertools.combinations(circles, 4):
+        intersection_count = 0
+        adjacent_count = 0
+        for pair in itertools.combinations(quadruble, 2):
+            if intersect(pair[0],pair[1]):
+                intersection_count+=1
+            if adjacent(pair[0],pair[1]):
+                adjacent_count+=1
+        if intersection_count>8:
+            print(f"{intersection_count}, {adjacent_count}")
+
+
+
+
+
+
+
+day15()
 
 def day16():
     tunnel_info = read_input("day16.txt")
@@ -665,7 +921,3 @@ def day16():
         current_valve = next_list.pop(0)
 
 
-
-
-
-day16()
