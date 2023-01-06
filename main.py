@@ -847,7 +847,6 @@ def day15():
         else:
             return False
 
-
     for sensor in sensors:
         parts = sensor.split(" ")
         sensor_pos = (int(parts[2].strip("x=,")),int(parts[3].strip("y=:")))
@@ -873,25 +872,57 @@ def day15():
     # part 1 try 3 5142231
 
     # going to try and search along the perimeters of each zone
-    circles = []
+    #  circles = []
+    # for sensor in sensors:
+    #   parts = sensor.split(" ")
+    #    sensor_pos = (int(parts[2].strip("x=,")),int(parts[3].strip("y=:")))
+    #    beacon_pos = (int(parts[8].strip("x=,")),int(parts[9].strip("y=")))
+    #    man_dist = abs(sensor_pos[0] - beacon_pos[0]) + abs(sensor_pos[1] - beacon_pos[1])
+    #    new_circle = {"center": sensor_pos, "radius": man_dist}
+    #    circles.append(Zone(new_circle))
+
+    #for quadruple in itertools.combinations(circles, 4):
+    #    pairings = []
+    #    for pair in itertools.combinations(quadruple, 2):
+    #        if dist(pair[0],pair[1]) == pair[0].radius + pair[1].radius+1:
+    #            pairings.append(pair)
+    #    if pairings==2:
+    #        print(quadruple)
+
+
+    # iterating thru each row, a lot faster than i thought lol
+    data = []
     for sensor in sensors:
         parts = sensor.split(" ")
-        sensor_pos = (int(parts[2].strip("x=,")),int(parts[3].strip("y=:")))
-        beacon_pos = (int(parts[8].strip("x=,")),int(parts[9].strip("y=")))
+        sensor_pos = (int(parts[2].strip("x=,")), int(parts[3].strip("y=:")))
+        beacon_pos = (int(parts[8].strip("x=,")), int(parts[9].strip("y=")))
         man_dist = abs(sensor_pos[0] - beacon_pos[0]) + abs(sensor_pos[1] - beacon_pos[1])
-        new_circle = {"center": sensor_pos, "radius": man_dist}
-        circles.append(Zone(new_circle))
+        data.append({"sensor": sensor_pos, "man_dist":man_dist })
 
-    for quadruple in itertools.combinations(circles, 4):
-        pairings = []
-        for pair in itertools.combinations(quadruple, 2):
-            if dist(pair[0],pair[1]) == pair[0].radius + pair[1].radius+1:
-                pairings.append(pair)
-        if pairings==2:
-            print(quadruple)
+    for y in range(4000000):
+        x = 0
+        ranges = []
+        for sensor in data:
+            sensor_pos = sensor["sensor"]
+            man_dist = sensor["man_dist"]
+            if abs(sensor_pos[1] - y) <= man_dist:
+                excess = man_dist - abs(sensor_pos[1] - y)
+                new_range = (sensor_pos[0] - excess, sensor_pos[0] + excess)
+                ranges.append(new_range)
+        ranges.sort()
 
+        while x <= 4000000:
+            next_range = ranges.pop(0)
+            if next_range[0]<x<next_range[1]:
+                x = next_range[1]+1
+            elif next_range[0]==x+1:
+                print(f"({x},{y})")
+                print(x*4000000+y)
+        if y%100000 == 0:
+            print(f"{100*y/4000000}")
 
-
+    # day 15 part 2 try 1 16000002765172 too high
+    #               try 2 10884459367718 !!!
 
 
 
