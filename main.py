@@ -830,7 +830,10 @@ def day15():
             self.radius = circle_dict["radius"]
 
     def dist(a,b):
-        return abs(a.center[0]-b.center[0]) + abs(a.center[1]-b.center[1])
+        if type(a)==Zone and type(b)==Zone:
+            return abs(a.center[0]-b.center[0]) + abs(a.center[1]-b.center[1])
+        elif type(a)==tuple and type(b)==tuple:
+            return abs(a[0]-b[0]) + abs(a[1]-b[1])
 
     def intersect(a,b):
         if dist(a,b) < a.radius+b.radius:
@@ -864,7 +867,7 @@ def day15():
         if ranges[i][0]<=ranges[i][1]:
             cant_be+= ranges[i][1]-ranges[i][0]+1
     cant_be -= len(on_target_row)
-    print(cant_be)
+    print(f"part 1: {cant_be}")
     # part 1 try 1 4999656 too low, double counting beacons and not correctly evaluating overlapping segments
     # part 1 try 2 5374697 too high, forgot to take off test row value
     # part 1 try 3 5142231
@@ -879,17 +882,13 @@ def day15():
         new_circle = {"center": sensor_pos, "radius": man_dist}
         circles.append(Zone(new_circle))
 
-
-    for quadruble in itertools.combinations(circles, 4):
-        intersection_count = 0
-        adjacent_count = 0
-        for pair in itertools.combinations(quadruble, 2):
-            if intersect(pair[0],pair[1]):
-                intersection_count+=1
-            if adjacent(pair[0],pair[1]):
-                adjacent_count+=1
-        if intersection_count>8:
-            print(f"{intersection_count}, {adjacent_count}")
+    for quadruple in itertools.combinations(circles, 4):
+        pairings = []
+        for pair in itertools.combinations(quadruple, 2):
+            if dist(pair[0],pair[1]) == pair[0].radius + pair[1].radius+1:
+                pairings.append(pair)
+        if pairings==2:
+            print(quadruple)
 
 
 
