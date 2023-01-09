@@ -925,29 +925,160 @@ def day15():
     #               try 2 10884459367718 !!!
 
 
-
-
-day15()
-
 def day16():
     tunnel_info = read_input("day16.txt")
-    tunnels = dict()
+    valves = dict()
 
     for line in tunnel_info:
-        new_tunnel = dict()
-        new_tunnel["name"] = line.split(" ")[1]
-        new_tunnel["rate"] = int(line.split(" ")[4].strip("rate=;"))
-        new_tunnel["connections"] = list(map(lambda i: i.strip(","), line.split(" ")[9:]))
-        tunnels[new_tunnel["name"]] = new_tunnel
+        new_valve = dict()
+        new_valve["name"] = line.split(" ")[1]
+        new_valve["rate"] = int(line.split(" ")[4].strip("rate=;"))
+        new_valve["connections"] = list(map(lambda i: i.strip(","), line.split(" ")[9:]))
+        valves[new_valve["name"]] = new_valve
     important_valves = []
-    for tunnel in tunnels.keys():
-        if tunnels[tunnel]["rate"] > 0:
-            important_valves.append(tunnel)
+    for valve in valves.keys():
+        if valves[valve]["rate"] > 0:
+            important_valves.append(valve)
     print(important_valves)
     start = "AA"
     next_list = {"AA"}
     distances = {"AA":0}
     while len(next_list) > 0:
-        current_valve = next_list.pop(0)
+        current_valve = next_list.pop()
 
 
+def day19():
+    blueprint_texts = read_input("day19test.txt")
+    blueprints = []
+    for blueprint_line in blueprint_texts:
+        parts = blueprint_line.split(" ")
+        new_blueprint = {"num": int(parts[1].strip(":"))}
+        new_blueprint["ore bot"] = {"ore": int(parts[6])}
+        new_blueprint["clay bot"] = {"ore": int(parts[12])}
+        new_blueprint["obsidian bot"] = {"ore": int(parts[18]), "clay": int(parts[21])}
+        new_blueprint["geode bot"] = {"ore": int(parts[27]), "obsidian": int(parts[30])}
+        blueprints.append(new_blueprint)
+
+    qualities = []
+    tuple_keys = {"ore bot": 0, "clay bot": 1, "obsidian bot": 2, "geode bot": 3,
+                  "ore": 4, "clay": 5, "obsidian": 6, "geodes": 7}
+    for blueprint in blueprints:
+        best_quality = 0
+        # initial conditions
+        # going to try and represent states as tuples instead of class objects
+        max_necessary_ore_bot = max(blueprint["ore bot"]["ore"],
+                                       blueprint["clay bot"]["ore"],
+                                       blueprint["obsidian bot"]["ore"],
+                                       blueprint["geode bot"]["ore"])
+        max_necessary_clay_bot = blueprint["obsidian bot"]["clay"]
+        max_necessary_obsidian_bot = blueprint["geode bot"]["obsidian"]
+        initial = (1,0,0,0,0,0,0,0,None)
+        # (ore bot, clay bot, obs bot, geo bot, ore, clay, obs, geo, next_build)
+
+        def build(state_tuple):
+            # goes thru each possible type of bot and creates a new tuple representing that state of the world
+            # then we make a set of those states so we can mash them into our bigger pile of states and ignore intersecting
+            # possibilities of states
+            states = set()
+            if blueprint["geode bot"]['ore']<=state_tuple[4] and blueprint['geode bot']['obsidian'] <= state_tuple[6]:
+                new_tuple = list(state_tuple)
+                new_tuple[4] -= blueprint['geode bot']['ore']
+                new_tuple[6] -= blueprint['geode bot']['obsidian']
+                new_tuple[8] = "geode bot"
+                states.add(tuple(new_tuple))
+            if blueprint["obsidian bot"]['ore']<=state_tuple[4] and blueprint['obsidian bot']['clay'] <= state_tuple[5] and state_tuple[2]<max_necessary_obsidian_bot:
+                new_tuple = list(state_tuple)
+                new_tuple[4] -= blueprint['obsidian bot']['ore']
+                new_tuple[5] -= blueprint['obsidian bot']['clay']
+                new_tuple[8] = "obsidian bot"
+                states.add(tuple(new_tuple))
+            if blueprint["clay bot"]['ore']<=state_tuple[4] and state_tuple[1] < max_necessary_clay_bot:
+                new_tuple = list(state_tuple)
+                new_tuple[4] -= blueprint['clay bot']['ore']
+                new_tuple[8] = "clay bot"
+                states.add(tuple(new_tuple))
+            if blueprint["ore bot"]['ore']<=state_tuple[4] and state_tuple[0] < max_necessary_ore_bot:
+                new_tuple = list(state_tuple)
+                new_tuple[4] -= blueprint['ore bot']['ore']
+                new_tuple[8] = "ore bot"
+                states.add(tuple(new_tuple))
+
+            def can_make():
+                can_make_everything = True
+                if state_tuple[4]<max(blueprint["ore bot"]["ore"],
+                                       blueprint["clay bot"]["ore"],
+                                       blueprint["obsidian bot"]["ore"],
+                                       blueprint["geode bot"]["ore"]):
+                    can_make_everything = False
+                elif state_tuple[tuple_keys["clay bot"]] > 0 and blueprint["obsidian bot"]["clay"] > state_tuple[5]:
+                    can_make_everything = False
+                elif state_tuple[6]<blueprint["geode bot"]["obsidian"] and state_tuple[2]>0:
+                    can_make_everything = False
+                return can_make_everything
+
+            if not can_make():
+                states.add(state_tuple)
+            return states
+
+        def mine(state_tuple):
+            lis = list(state_tuple)
+            lis[tuple_keys["ore"]] += lis[tuple_keys["ore bot"]]
+            lis[tuple_keys["clay"]] += lis[tuple_keys["clay bot"]]
+            lis[tuple_keys["obsidian"]] += lis[tuple_keys["obsidian bot"]]
+            lis[tuple_keys["geodes"]] += lis[tuple_keys["geode bot"]]
+            return tuple(lis)
+
+        def finish_building(state_tuple):
+            lis = list(state_tuple)
+            if lis[8]:
+                lis[tuple_keys[lis[8]]]+=1
+            lis[8] = None
+            return tuple(lis)
+
+        possible_states = set([initial])
+
+
+        for each_minute in range(24):
+            print(f"{each_minute}: {len(possible_states)}")
+            states_building_selected = set()
+            for state in possible_states:
+                states_building_selected = states_building_selected.union(build(state))
+            print(f"selected possible build configurations: {len(states_building_selected)}")
+            states_mined = set()
+            geode_leader = (0,0,0,0,0,0,0,0)
+            for state in states_building_selected:
+                cur_state_mined = mine(state)
+                if cur_state_mined not in states_mined:
+                    if cur_state_mined[tuple_keys["geodes"]]>=geode_leader[tuple_keys["geodes"]]:
+                        if cur_state_mined[tuple_keys["geode bot"]]>geode_leader[tuple_keys["geode bot"]]:
+                            geode_leader = cur_state_mined
+                        states_mined.add(cur_state_mined)
+                    else:
+                        geode_leader_minimum = geode_leader[7]+geode_leader[3]*(23-each_minute)
+                        cur_state_maximum = cur_state_mined[7]+int((23-each_minute)*(2*cur_state_mined[3]+(23-each_minute)+1)/2)
+                        if cur_state_maximum>=geode_leader_minimum:
+                            states_mined.add(cur_state_mined)
+            print(f"mined and pruned states {len(states_mined)}")
+            next_states = set()
+            for state in states_mined:
+                next_states.add(finish_building(state))
+            print(f"finished buildings in every state {len(next_states)}")
+            possible_states = next_states.copy()
+            print(f"geodes: {geode_leader[7]}")
+        for state in possible_states:
+            if blueprint['num']*state[tuple_keys["geodes"]] >= best_quality:
+                best_quality = blueprint['num']*state[tuple_keys["geodes"]]
+                print(best_quality)
+        qualities.append(best_quality)
+        print(best_quality/blueprint["num"])
+    print(sum(qualities))
+
+
+
+
+
+
+
+
+
+day19()
