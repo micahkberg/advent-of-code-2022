@@ -1037,7 +1037,6 @@ def day19():
 
         possible_states = set([initial])
 
-
         for each_minute in range(24):
             print(f"{each_minute}: {len(possible_states)}")
             states_building_selected = set()
@@ -1074,11 +1073,43 @@ def day19():
     print(sum(qualities))
 
 
+def day20():
+    nums = read_input("day20.txt")
+    nums = list(map(int, nums))
+    part2 = True
+    if part2:
+        nums = list(map(lambda i: i*811589153, nums))
+    indices = list(range(len(nums)))
+    for i in list(range(len(nums)))*10:
+        #print(nums)
+        i_x = indices.index(i)
+        num = nums[i_x]
+        for _ in range(abs(num)%(len(nums)-1)):
+            if num>0:
+                swap_with_num = nums[(i_x+1)%len(nums)]
+                swap_with_index = indices[(i_x+1)%len(nums)]
+                nums[i_x] = swap_with_num
+                nums[(i_x+1)%len(nums)] = num
+                indices[i_x] = swap_with_index
+                indices[(i_x+1)%len(nums)] = i
+                i_x = (i_x+1)%len(nums)
+            if num<0:
+                swap_with_num = nums[(i_x - 1)%len(nums)]
+                swap_with_index = indices[(i_x - 1)%len(nums)]
+                nums[i_x] = swap_with_num
+                nums[(i_x - 1)%len(nums)] = num
+                indices[i_x] = swap_with_index
+                indices[(i_x - 1)%len(nums)] = i
+                i_x = (i_x - 1)%len(nums)
+
+    zero_loc = nums.index(0)
+    #print(nums)
+    print(nums[(zero_loc+1000)%len(nums)]+nums[(zero_loc+2000)%len(nums)]+nums[(zero_loc+3000)%len(nums)])
+    #day20part1 try 1: -7210 (incorrect)
+    #part1: correct: 7225
 
 
 
 
 
-
-
-day19()
+day20()
