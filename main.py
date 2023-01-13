@@ -1109,7 +1109,88 @@ def day20():
     #part1: correct: 7225
 
 
+def day21():
+    monkey_list = read_input("day21.txt")
+    monkeys = dict()
+    part2 = True
+
+
+    class Monkey:
+        def __init__(self, monkey_line):
+            parts = monkey_line.split(" ")
+            self.name = parts[0].strip(":")
+            self.value = None
+            self.a = None
+            self.b = None
+            self.op = None
+            if len(parts[1:])==1:
+                self.value = int(parts[1])
+            else:
+                self.a = parts[1]
+                self.b = parts[3]
+                self.op = parts[2]
+                if part2 and self.name=="root":
+                    self.op = "=="
+            if part2 and self.name=="humn":
+                self.value = "UNKNOWN"
+
+        def get_value(self, other_monkeys):
+            if not self.value:
+                self.value = "("+str(other_monkeys[self.a].get_value(other_monkeys)) + self.op + str(
+                    other_monkeys[self.b].get_value(other_monkeys))+")"
+                if not part2 or "UNKNOWN" not in self.value:
+                    self.value = eval(self.value)
+            return self.value
+
+    for monkey in monkey_list:
+        new_monkey = Monkey(monkey)
+        monkeys[new_monkey.name] = new_monkey
+    #part1
+    #print(monkeys["root"].get_value(monkeys))
+    left = monkeys[monkeys["root"].a].get_value(monkeys)
+    right = monkeys[monkeys["root"].b].get_value(monkeys)
+    while left != "UNKNOWN":
+        print(f"{left}={right}")
+        if left[0]=="(" and left[-1]==")":
+            left = left[1:-1]
+        elif left[0]=="(":
+            for i in range(1,len(left)):
+                if left[-i] in "*/-+":
+                    op = left[-i]
+                    num = left[(-i)+1:]
+                    break
+            op = {"/": "*",
+                    "*":"/",
+                    "+": "-",
+                    "-": "+"}[op]
+            right = eval(str(right)+op+num)
+            left = left[:-i]
+        elif left[-1]==")":
+            for i in range(len(left)):
+                if left[i] in "*/-+":
+                    op = left[i]
+                    num = left[:i]
+                    break
+
+            if op in "*+":
+                op = {"*": "/",
+                      "+": "-", }[op]
+                right = eval(str(right) + op + num)
+                left = left[i+1:]
+            elif op=="/":
+                right = eval(num + "/" + str(right))
+                left = left[i+1:]
+            elif op=="-":
+                right = eval(num + "-" + str(right))
+                left = left[i+1:]
+        else:
+            break
+    print(right)
+    #part2 try 1 3451534021574, too low
+    #part2 try 2 3451534022348 (based on last eval not working? because there isn't a parantheses lol
 
 
 
-day20()
+
+
+day21()
