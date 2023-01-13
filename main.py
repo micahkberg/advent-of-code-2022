@@ -1196,17 +1196,143 @@ def day21():
 
 def day22():
     board = read_input("day22.txt", strip=False)[:-1]
-    instructions = board[-1]
+    instructions = list(board[-1])
     board = board[:-1]
+    width = len(board[0])
+    height = len(board)
+    part2 = True
+    size = 50
     dirs = {(1,0): {"R": (0,1), "L": (0,-1)},
-            (0, 1): {"R": (0, 1), "L": (0, -1)},
-            (-1, 0): {"R": (0, 1), "L": (0, -1)},
-            (0, -1): {"R": (0, 1), "L": (0, -1)},
+            (0, 1): {"R": (-1, 0), "L": (1, 0)},
+            (-1, 0): {"R": (0, -1), "L": (0, 1)},
+            (0, -1): {"R": (1, 0), "L": (-1, 0)},
             }
 
     x = board[0].find(".")
     y = 0
-    facing = (1,0)
+    day22.facing = (1,0)
+    dist = ""
+
+    for row_num in range(len(board)):
+        board[row_num] = board[row_num].ljust(width, " ")
+
+    def cube_pos(coords):
+        # im probably a moron. but i don't want to try and make the map for this lmao
+        if 0<=coords[0]<width and 0<=coords[1]<height:
+            if board[coords[1]][coords[0]] in ".#":
+                return coords[0],coords[1],day22.facing
+        # going from 1->6
+        if coords[1]==-1 and coords[0] in range(50,100):
+            new_facing = (1,0)
+            return 0, coords[0]-50+150, new_facing
+        # going from 1->5
+        elif coords[0]==49 and coords[1] in range(0,50):
+            new_facing = (1,0)
+            return 0, 49 - coords[1] + 100, new_facing
+        # going from 2->6
+        elif coords[1]==-1 and coords[0] in range(100,150):
+            new_facing = (0,-1)
+            return coords[0] - 100, 199, new_facing
+        # going from 2->4
+        elif coords[0]==150 and coords[1] in range(0,50):
+            new_facing = (-1,0)
+            return 99, 49 - coords[1] + 100, new_facing
+        # going from 2->3
+        elif coords[1]==50 and coords[0] in range(100,150):
+            new_facing = (-1,0)
+            return 99, coords[0]-100+50, new_facing
+        # going from 3->2
+        elif coords[0]==100 and coords[1] in range(50,100):
+            new_facing = (0,-1)
+            return coords[1]-50+100, 49, new_facing
+        # going from 3->5
+        elif coords[0]==49 and coords[1] in range(50,100):
+            new_facing = (0,1)
+            return coords[1]-50, 100, new_facing
+        # going from 4->2
+        elif coords[0]==100 and coords[1] in range(100,150):
+            new_facing = (-1, 0)
+            return 149, 49-(coords[1]-100), new_facing
+        # going from 4->6
+        elif coords[1]==150 and coords[0] in range(50,100):
+            new_facing = (-1,0)
+            return 49, coords[0]-50+150, new_facing
+        # going from 5->3
+        elif coords[1]==99 and coords[0] in range(0,50):
+            new_facing = (1,0)
+            return 50, coords[0]+50, new_facing
+        # going from 5->1
+        elif coords[0]==-1 and coords[1] in range(100,150):
+            new_facing = (1,0)
+            return 50, 49-(coords[1]-100), new_facing
+        # going from 6->4
+        elif coords[0]==50 and coords[1] in range(150,200):
+            new_facing = (0,-1)
+            return coords[1]-150+50, 149, new_facing
+        # going from 6->2
+        elif coords[1]==200 and coords[0] in range(0,50):
+            new_facing = (0,1)
+            return coords[0]+100, 0, new_facing
+        # going from 6->1
+        elif coords[0]==-1 and coords[1] in range(150,200):
+            new_facing = (0,1)
+            return coords[1]-150+50, 0, new_facing
+        else:
+            print(coords)
+
+
+    def can_move(coords):
+        if not part2:
+            next_pos = ((coords[0]+day22.facing[0])%width,(coords[1]+day22.facing[1])%height)
+        else:
+            new_x,new_y,new_facing = cube_pos(((coords[0]+day22.facing[0]),(coords[1]+day22.facing[1])))
+            next_pos = (new_x,new_y)
+        if board[next_pos[1]][next_pos[0]] == ".":
+            return next_pos[0], next_pos[1], new_facing
+        elif board[next_pos[1]][next_pos[0]] == "#":
+            return False
+        elif board[next_pos[1]][next_pos[0]] == " ":
+            return can_move(next_pos)
+
+
+    def print_pos():
+        print_board = board.copy()
+        me = {(-1,0):"<",(1,0):">",(0,1):"v",(0,-1):"^"}[day22.facing]
+        print_board[y] = print_board[y][:x] + me + print_board[y][x+1:]
+        output = ""
+        for line in print_board:
+            output = output+line+"\n"
+        print(output)
+
+
+    while len(instructions)>0:
+        next_char = instructions.pop(0)
+        if next_char not in "LR":
+            dist = dist + next_char
+        if next_char in "LR" or len(instructions)==0:
+            for _ in range(int(dist)):
+                movement = can_move((x,y))
+                if movement:
+                    x,y,day22.facing = movement
+                else:
+                    break
+            if next_char in "LR":
+                day22.facing = dirs[day22.facing][next_char]
+            #print(dist+next_char)
+            #print_pos()
+            dist = ""
+    face_val = {(1,0): 0, (0,1): 1, (-1,0): 2, (0,-1): 3}[day22.facing]
+    result = (1000 * (y+1)) + (4 * (x+1)) + face_val
+    print(result)
+
+    # part1 try1 36570 too high
+    # fixed last line 36518
+
+    # part2 try1 138022 too low
+    # part2 try2 75284, after trying to fix the facing variable
+    # part2 try2 143208, fixed the getting turned to match the new face even if we didn't cross to the new face
+
+
 
 
 
