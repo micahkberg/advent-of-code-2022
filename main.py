@@ -2,9 +2,12 @@ from operator import itemgetter
 import numpy as np
 import itertools
 
-def read_input(fname):
+def read_input(fname, strip=True):
     f = open(fname, "r")
-    contents = f.read().strip().split("\n")
+    if strip:
+        contents = f.read().strip().split("\n")
+    else:
+        contents = f.read().split("\n")
     f.close()
     return contents
 
@@ -1191,6 +1194,21 @@ def day21():
 
 
 
+def day22():
+    board = read_input("day22.txt", strip=False)[:-1]
+    instructions = board[-1]
+    board = board[:-1]
+    dirs = {(1,0): {"R": (0,1), "L": (0,-1)},
+            (0, 1): {"R": (0, 1), "L": (0, -1)},
+            (-1, 0): {"R": (0, 1), "L": (0, -1)},
+            (0, -1): {"R": (0, 1), "L": (0, -1)},
+            }
+
+    x = board[0].find(".")
+    y = 0
+    facing = (1,0)
 
 
-day21()
+
+
+day22()
