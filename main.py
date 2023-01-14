@@ -1333,8 +1333,116 @@ def day22():
     # part2 try2 143208, fixed the getting turned to match the new face even if we didn't cross to the new face
 
 
+def day23():
+    ground_map = read_input("day23.txt")
+
+    dirs = {"N": (0,-1), "NE": (1,-1),"E": (1,0),"SE":(1,1),"S":(0,1),"SW":(-1,1),"W":(-1,0),"NW":(-1,-1)}
+
+    choices = {"N":["N","NE","NW"],
+               "E":["NE","E","SE"],
+               "W":["W","SW","NW"],
+               "S":["S","SE","SW"]}
+    choice_order = "NSWE"
+
+    part2 = True
+    all_elf_positions = set()
+
+    class Elf:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+            self.target = None
+
+        def check_surroudings(self, positions):
+            neighbors = []
+            for k, v in dirs.items():
+                if (self.x+v[0],self.y+v[1]) in positions:
+                    neighbors.append(k)
+            if len(neighbors)>0:
+                for choice in choice_order:
+                    choice_good = True
+                    for i in choices[choice]:
+                        if i in neighbors:
+                            choice_good = False
+                            break
+                    if choice_good:
+                        self.target = (self.x+dirs[choice][0], self.y+dirs[choice][1])
+                        break
+            else:
+                self.target = None
+
+        def try_move(self, positions):
+            if self.target and positions.count(self.target)==1:
+                self.x,self.y = self.target
+            self.target = None
 
 
 
 
-day22()
+    elves = []
+
+    for y in range(len(ground_map)):
+        for x in range(len(ground_map[0])):
+            if ground_map[y][x]=="#":
+                elves.append(Elf(x,y))
+    print(len(elves))
+
+
+    if not part2:
+        for _ in range(10):
+            all_elf_positions = set(map(lambda i: (i.x,i.y), elves))
+            for elf in elves:
+                elf.check_surroudings(all_elf_positions)
+            all_targets = list(map(lambda i: i.target, elves))
+            for elf in elves:
+                elf.try_move(all_targets)
+            choice_order = choice_order[1:]+choice_order[0]
+        xi,xf,yi,yf = elves[0].x,elves[0].x,elves[0].y,elves[0].y
+
+        for elf in elves:
+            if elf.x<xi:
+                xi=elf.x
+            if elf.x>xf:
+                xf=elf.x
+            if elf.y<yi:
+                yi=elf.y
+            if elf.y>yf:
+                yf=elf.y
+        area = (xf+1-xi)*(yf+1-yi)
+        print(area-len(elves))
+        test_output = ""
+        for y in range(yi,yf+1):
+            for x in range(xi,xf+1):
+                if (x,y) in set(map(lambda i: (i.x,i.y), elves)):
+                    test_output+="#"
+                else:
+                    test_output+="."
+            test_output += "\n"
+        print(test_output)
+        #part1 3653 too low
+        #part1 3812, area calc was wrong
+
+    elif part2:
+        round_num = 0
+        while True:
+            round_num+=1
+            all_elf_positions = set(map(lambda i: (i.x, i.y), elves))
+            for elf in elves:
+                elf.check_surroudings(all_elf_positions)
+            all_targets = list(map(lambda i: i.target, elves))
+            if len(set(all_targets)) != 1:
+                for elf in elves:
+                    elf.try_move(all_targets)
+                choice_order = choice_order[1:] + choice_order[0]
+            else:
+                print(round_num)
+                break
+
+
+
+
+
+
+
+
+day23()
