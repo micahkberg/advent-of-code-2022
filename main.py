@@ -1440,9 +1440,112 @@ def day23():
 
 
 
+def day24():
+    map_start= read_input("day24.txt")
+    # initializing items
+    start = (1,0,0) # x, y, turn
+    end = (len(map_start[0])-2, len(map_start)-1)
+    height = len(map_start)
+    width = len(map_start[0])
+    print(f"{width}, {height}")
+    dirs = {">": [1, 0],
+            "<": [-1, 0],
+            "^": [0, -1],
+            "v": [0, 1]}
+    walls = set()
+    all_storms = set()
+    storms_positions = set()
+    for y in range(height):
+        for x in range(width):
+            if map_start[y][x]=="#":
+                walls.add((x,y))
+            elif map_start[y][x] in "<>v^":
+                all_storms.add((x,y,map_start[y][x]))
+                storms_positions.add((x,y))
+
+    def move_storm(storm): # takes storms of the form (x,y,direction of travel) , and reutrns a (new x, new y, same dir of travel)
+        destination = (storm[0]+dirs[storm[2]][0],storm[1]+dirs[storm[2]][0], storm[2])
+        if destination in walls:
+            if destination[0]==0:
+                destination = (width-2,destination[1],destination[2])
+            elif destination[0]==width-1:
+                destination = (1, destination[1],destination[2])
+            elif destination[1]==0:
+                destination = (destination[0], height-2, destination[2])
+            elif destination[1]==height-1:
+                destination = (destination[0], 1, destination[2])
+        return destination
+
+    def print_status():
+        line = ""
+        for y in range(height):
+            for x in range(width):
+                if (x,y) in walls:
+                    line+="#"
+                elif (x,y) in storms_positions:
+                    line+="&"
+                else:
+                    line+="."
+            line+="\n"
+        print(line)
+
+    empty_spaces_each_turn = []
+    for i in range(1000):
+        # build set of available spaces for each turn
+        empty_spaces = set()
+        for y in range(1,height-1):
+            for x in range(1,width-1):
+                if (x,y) not in storms_positions:
+                    empty_spaces.add((x,y))
+        empty_spaces_each_turn.append(empty_spaces)
+
+        # move all the storms
+        new_storms = set()
+        storms_positions = set()
+        while len(all_storms) > 0:
+            old_storm = all_storms.pop()
+            new_storm = move_storm(old_storm)
+            storms_positions.add((new_storm[0],new_storm[1]))
+            new_storms.add(new_storm)
+        all_storms = new_storms
+
+    def find_vertices(pos_tuple):
+        x, y, turn_number = pos_tuple
+        next_map = empty_spaces_each_turn[turn_number+1]
+        possible_next_positions = set()
+        if (x,y) in next_map:
+            possible_next_positions.add((x, y, turn_number+1))
+        for direction in dirs.values():
+            if (x+direction[0],y+direction[1]) in next_map:
+                possible_next_positions.add((x+direction[0], y+direction[1]), turn_number+1)
+        return possible_next_positions
+
+    day24.decision_tree = dict()
+    day24.scores = dict()
+
+    def search(node):
+        if (node[0],node[1]) == end:
+            return node[2]
+        if node not in day24.decision_tree.keys():
+            day24.decision_tree[node] = find_vertices(node)
+        for next_node in day24.decision_tree[node]:
+            result = search(next_node)
+            if node not in day24.scores:
+                day24.scores = result
+                return result
+            elif day24.
+
+
+    stack = {start}
+    turn = 0
+    while len(stack)>0:
+        cur_node = stack.pop()
+        decision_tree[cur_node] = find_vertices(cur_node)
+        for
 
 
 
 
 
-day23()
+
+day24()
