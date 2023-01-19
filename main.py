@@ -1564,9 +1564,70 @@ def day24():
     print(f"part2 (final_leg): {part2_leg2}")
 
 
+def day25():
+    lines = read_input("day25.txt")
+    vals = {"2": 2, "1": 1, "0":0, "-": -1, "=": -2,
+            2: '2', 1: "1", 0: '0', -1:"-", -2: "="}
+    costs = []
+
+    def snafu_to_int(snafu_str):
+        dec = 0
+        for i in range(len(snafu_str)):
+            dec += vals[snafu_str[-(i+1)]]*(5**i)
+        return dec
+
+    for line in lines:
+        costs.append(snafu_to_int(line))
+    print(sum(costs))
+
+    def dec_to_snafu(decimal_int):
+        digits = {"=":"-","-":"0","0":"1","1":"2"}
+        start = "1"
+        next_start = start
+        while snafu_to_int(next_start) < decimal_int:
+            start = next_start
+            if next_start[0]=="1" and len(next_start)>1:
+                next_start = "2" + next_start[1:]
+            elif next_start=="1":
+                next_start = "2"
+            else:
+                next_start = "1" + next_start[1:]
+                next_start+="="
+
+        i = 0
+        while snafu_to_int(start) != decimal_int:
+            min_next_digit = start[:i+1] + "=" *len(start[i+1:])
+            max_next_digit = start[:i+1] + "2" *len(start[i+1:])
+            if snafu_to_int(min_next_digit) == decimal_int:
+                return min_next_digit
+            elif snafu_to_int(max_next_digit)==decimal_int:
+                return max_next_digit
+            if snafu_to_int(min_next_digit) <= decimal_int <= snafu_to_int(max_next_digit):
+                print(min_next_digit)
+                print(max_next_digit)
+                i+=1
+            else:
+                start = list(start)
+                start[i] = digits[start[i]]
+                start = "".join(start)
+        if snafu_to_int(start)==decimal_int:
+            return start
+
+    def test_snafu():
+        lines = read_input("day25testSNAFU.txt")
+        for line in lines[1:]:
+            parts = line.strip().split(" ")
+            snafu = parts[0]
+            dec = parts[-1]
+            print(f'converting: {dec_to_snafu(int(dec))}')
+            print(f"correct answer: {snafu}")
+
+
+    print(f"part 1: {dec_to_snafu(sum(costs))}")
+    #attempt 1 -2-0=11=21-2201-01-2 # these attempts were built off of the bad observation that the digits lag 2 behind ish
+    #attempt 2 -2-0=11=21-2201-0101
+    #attempt 3 2-121-=10=200==2==21 #switching to binary search worked!
 
 
 
-
-
-day24()
+day25()
