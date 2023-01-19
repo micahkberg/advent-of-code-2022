@@ -1449,9 +1449,10 @@ def day24():
     width = len(map_start[0])
     print(f"{width}, {height}")
     dirs = {">": [1, 0],
+            "v": [0, 1],
             "<": [-1, 0],
             "^": [0, -1],
-            "v": [0, 1]}
+            }
     walls = set()
     all_storms = set()
     storms_positions = set()
@@ -1464,16 +1465,15 @@ def day24():
                 storms_positions.add((x,y))
 
     def move_storm(storm): # takes storms of the form (x,y,direction of travel) , and reutrns a (new x, new y, same dir of travel)
-        destination = (storm[0]+dirs[storm[2]][0],storm[1]+dirs[storm[2]][0], storm[2])
-        if destination in walls:
-            if destination[0]==0:
-                destination = (width-2,destination[1],destination[2])
-            elif destination[0]==width-1:
-                destination = (1, destination[1],destination[2])
-            elif destination[1]==0:
-                destination = (destination[0], height-2, destination[2])
-            elif destination[1]==height-1:
-                destination = (destination[0], 1, destination[2])
+        destination = (storm[0]+dirs[storm[2]][0],storm[1]+dirs[storm[2]][1], storm[2])
+        if destination[0]==0:
+            destination = (width-2,destination[1],destination[2])
+        elif destination[0]==width-1:
+            destination = (1, destination[1],destination[2])
+        elif destination[1]==0:
+            destination = (destination[0], height-2, destination[2])
+        elif destination[1]==height-1:
+            destination = (destination[0], 1, destination[2])
         return destination
 
     def print_status():
@@ -1483,16 +1483,19 @@ def day24():
                 if (x,y) in walls:
                     line+="#"
                 elif (x,y) in storms_positions:
-                    line+="&"
+                    for storm in all_storms:
+                        if (x,y) == (storm[0],storm[1]):
+                            line+=storm[2]
+                            break
                 else:
                     line+="."
             line+="\n"
         print(line)
 
     empty_spaces_each_turn = []
-    for i in range(1000):
+    for i in range(1500):
         # build set of available spaces for each turn
-        empty_spaces = set()
+        empty_spaces = {(1,0), (width-2,height-1)}
         for y in range(1,height-1):
             for x in range(1,width-1):
                 if (x,y) not in storms_positions:
@@ -1509,39 +1512,57 @@ def day24():
             new_storms.add(new_storm)
         all_storms = new_storms
 
+
     def find_vertices(pos_tuple):
         x, y, turn_number = pos_tuple
         next_map = empty_spaces_each_turn[turn_number+1]
         possible_next_positions = set()
-        if (x,y) in next_map:
-            possible_next_positions.add((x, y, turn_number+1))
         for direction in dirs.values():
             if (x+direction[0],y+direction[1]) in next_map:
-                possible_next_positions.add((x+direction[0], y+direction[1]), turn_number+1)
+                possible_next_positions.add((x+direction[0], y+direction[1], turn_number+1))
+        if (x,y) in next_map:
+            possible_next_positions.add((x, y, turn_number+1))
         return possible_next_positions
 
     day24.decision_tree = dict()
     day24.scores = dict()
 
     def search(node):
+        if node in day24.scores.keys():
+            return day24.scores[node]
+        if node[2]>start[2]+450:
+            day24.scores[node]=9999
+            return 9999
         if (node[0],node[1]) == end:
+            print(node[2])
             return node[2]
         if node not in day24.decision_tree.keys():
             day24.decision_tree[node] = find_vertices(node)
         for next_node in day24.decision_tree[node]:
             result = search(next_node)
-            if node not in day24.scores:
-                day24.scores = result
-                return result
-            elif day24.
+            if node not in day24.scores.keys():
+                day24.scores[node] = result
+            elif day24.scores[node] > result:
+                day24.scores[node] = result
+        if len(day24.decision_tree[node])==0:
+            day24.scores[node] = 9999
+        return day24.scores[node]
 
+    part1 = search(start)
+    print(f"part1: {part1}")
+    start = (end[0],end[1], part1)
+    end = (1,0)
+    day24.scores = dict()
+    day24.decision_tree = dict()
+    part2 = search(start)
+    print(f"part2 (leg 1): {part2}")
+    start = (1,0,part2)
+    end = end = (len(map_start[0])-2, len(map_start)-1)
+    day24.scores = dict()
+    day24.decision_tree = dict()
+    part2_leg2 = search(start)
+    print(f"part2 (final_leg): {part2_leg2}")
 
-    stack = {start}
-    turn = 0
-    while len(stack)>0:
-        cur_node = stack.pop()
-        decision_tree[cur_node] = find_vertices(cur_node)
-        for
 
 
 
