@@ -1034,6 +1034,78 @@ def day16():
     #probably could note the best score for certain positions in certain times and ignore worse situations
 
 
+def day18_from_scratch():
+    inp = read_input("day18.txt")
+    lava_cubes = set()
+    air = set()
+    for line in inp:
+        new_cube = tuple(map(int,line.split(",")))
+        lava_cubes.add(new_cube)
+    dirs = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0], [0, 0, -1]]
+    surface_area = 0
+    for cube in lava_cubes:
+        for v in dirs:
+            target = (cube[0]+v[0],cube[1]+v[1],cube[2]+v[2])
+            if target not in lava_cubes:
+                surface_area+=1
+                air.add(target)
+
+    #expand air
+    to_add = set()
+    for cube in air:
+        for v in dirs:
+            target = (cube[0]+v[0],cube[1]+v[1],cube[2]+v[2])
+            if target not in lava_cubes:
+                to_add.add(target)
+    for c in to_add:
+        air.add(c)
+
+    print(f"part 1 total surface area: {surface_area}")
+    print(f"number of cubes of adjacent air: {len(air)}")
+    zones = []
+    while len(air)>0:
+        new_zone = {air.pop()}
+        queue = new_zone.copy()
+        while len(queue)>0:
+            cube = queue.pop()
+            for v in dirs:
+                target = (cube[0]+v[0],cube[1]+v[1],cube[2]+v[2])
+                if target in air:
+                    new_zone.add(target)
+                    queue.add(target)
+                    air.remove(target)
+        zones.append(new_zone)
+    print(f"number of bubbles+outside surface = {len(zones)}")
+    air_check = 0
+    for zone in zones:
+        air_check+=len(zone)
+    print(f"number of cubes of air in zones check: {air_check}")
+    max_zone = None
+    pt = list(lava_cubes)[0]
+    xmax = -10
+    for zone in zones:
+        for cube in zone:
+            if cube[0]>xmax:
+                xmax=cube[0]
+                max_zone = zone
+
+    outside_surface = 0
+    print(f"cubes of air on surface: {len(max_zone)}")
+    for cube in max_zone:
+        for v in dirs:
+            target = (cube[0] + v[0], cube[1] + v[1], cube[2] + v[2])
+            if target in lava_cubes:
+                outside_surface+=1
+    print(outside_surface)
+    #461 too low
+
+
+
+
+
+
+day18_from_scratch()
+
 def day19_try1():
     blueprint_texts = read_input("day19test.txt")
     blueprints = []
