@@ -86,7 +86,6 @@ def day3():
     print(sum(map(lambda i: score(i), reorgs)))
     print(sum(map(lambda i: score(i), badges)))
 
-
 def day4():
     assignments = read_input("day4.txt")
     complete_overlap_count = 0
@@ -107,7 +106,6 @@ def day4():
 
     print(f"complete overlaps = {complete_overlap_count}")
     print(f"partial overlaps = {partial_overlap_count}")
-
 
 def day5():
     info = read_input("day5.txt")
@@ -151,7 +149,6 @@ def day5():
 
     # try 1 BPCZJLFJW (which turned out to be part 2 becuase i didnt realize they werent reversed)
 
-
 def day6():
     datastream = read_input("day6.txt")[0]
     for i in range(len(datastream)):
@@ -159,7 +156,6 @@ def day6():
         if len(set(current_signal))==14:
             print(i+14)
             break
-
 
 def day7():
 
@@ -285,7 +281,6 @@ def day8():
             best_score = tree_score if tree_score > best_score else best_score
     print(best_score)
 
-
 def day9():
     h = (0, 0)
     t = (0, 0)
@@ -332,7 +327,6 @@ def day9():
 
 
     print(len(visited))
-
 
 def day10():
     commands = read_input("day10.txt")
@@ -1037,18 +1031,10 @@ def day16():
                 decision_paths.append(path)
     #2797 too low 3338 too high
     #didnt really ever optimize this enough, just ran it until a good score came out lol
+    #probably could note the best score for certain positions in certain times and ignore worse situations
 
 
-
-
-
-
-
-
-
-
-
-def day19():
+def day19_try1():
     blueprint_texts = read_input("day19test.txt")
     blueprints = []
     for blueprint_line in blueprint_texts:
@@ -1065,7 +1051,7 @@ def day19():
                   "ore": 4, "clay": 5, "obsidian": 6, "geodes": 7}
     for blueprint in blueprints:
         best_quality = 0
-        # initial conditions
+        # initial conditions4
         # going to try and represent states as tuples instead of class objects
         max_necessary_ore_bot = max(blueprint["ore bot"]["ore"],
                                        blueprint["clay bot"]["ore"],
@@ -1172,6 +1158,169 @@ def day19():
         qualities.append(best_quality)
         print(best_quality/blueprint["num"])
     print(sum(qualities))
+
+def day19():
+    blueprint_texts = read_input("day19.txt")
+    blueprints = []
+    for blueprint_line in blueprint_texts:
+        parts = blueprint_line.split(" ")
+        new_blueprint = {"num": int(parts[1].strip(":")), "ore bot": {"ore": int(parts[6])},
+                         "clay bot": {"ore": int(parts[12])},
+                         "obsidian bot": {"ore": int(parts[18]), "clay": int(parts[21])},
+                         "geode bot": {"ore": int(parts[27]), "obsidian": int(parts[30])}}
+        blueprints.append(new_blueprint)
+
+    # class for holding information about state of bot simulations
+    class State:
+        def __init__(self, blueprint, goal, time_remaining=24, bots=(1, 0, 0, 0), material=(0, 0, 0, 0)):
+            self.ore_bots, self.clay_bots, self.obsidian_bots, self.geode_bots = bots
+            self.ore, self.clay, self.obsidian, self.geode = material
+            self.goal = goal
+            self.blueprint = blueprint
+            self.time_remaining = time_remaining
+
+            # first determine the most bots we could possibly need of each type
+            self.max_necessary_ore_bot = max(blueprint["ore bot"]["ore"],
+                                        blueprint["clay bot"]["ore"],
+                                        blueprint["obsidian bot"]["ore"],
+                                        blueprint["geode bot"]["ore"])
+            self.max_necessary_clay_bot = blueprint["obsidian bot"]["clay"]
+            self.max_necessary_obsidian_bot = blueprint["geode bot"]["obsidian"]
+
+        def get_bots(self):
+            return self.ore_bots, self.clay_bots, self.obsidian_bots, self.geode_bots
+
+        def get_material(self):
+            return self.ore, self.clay, self.obsidian, self.geode
+
+        def potential_ore(self):
+            return self.time_remaining*self.ore_bots+self.ore
+
+        def potential_clay(self):
+            return self.time_remaining*self.clay_bots+self.clay
+
+        def potential_obsidian(self):
+            return self.time_remaining*self.obsidian_bots+self.obsidian
+
+        def potential_geode(self):
+            return self.time_remaining*self.geode_bots+self.geode
+
+        def max_potential_geode(self):
+            geodes = self.geode
+            g_bots = self.geode_bots
+            for _ in range(self.time_remaining):
+                geodes+=g_bots
+                g_bots+=1
+            return geodes
+
+        def can_get_ore_bot(self):
+            return self.potential_ore()>=self.blueprint["ore bot"]["ore"]
+
+        def can_get_clay_bot(self):
+            return self.potential_ore()>=self.blueprint["clay bot"]["ore"]
+
+        def can_get_obsidian_bot(self):
+            return self.potential_ore()>=self.blueprint["obsidian bot"]["ore"] and \
+                   self.potential_clay()>=self.blueprint["obsidian bot"]["clay"]
+
+        def can_get_geode_bot(self):
+            return self.potential_ore()>=self.blueprint["geode bot"]["ore"] and \
+                   self.potential_obsidian()>=self.blueprint["geode bot"]["obsidian"]
+
+        def get_next_bots(self):
+            bot_list = []
+            if self.ore_bots < self.max_necessary_ore_bot and self.can_get_ore_bot():
+                bot_list.append("ore bot")
+            if self.clay_bots< self.max_necessary_clay_bot and self.can_get_clay_bot():
+                bot_list.append("clay bot")
+            if self.clay_bots>0 and self.obsidian_bots<self.max_necessary_obsidian_bot and self.can_get_obsidian_bot():
+                bot_list.append("obsidian bot")
+            if self.obsidian_bots>0 and self.can_get_geode_bot():
+                bot_list.append("geode bot")
+            return bot_list
+
+        def turns_til_can_afford(self, bot_name):
+            min_turns = 0
+            for cost_name in self.blueprint[bot_name].keys():
+                if cost_name == 'ore':
+                    needed_ore = self.blueprint[bot_name][cost_name] - self.ore
+                    if needed_ore>0:
+                        turns = np.ceil(needed_ore/self.ore_bots)
+                        min_turns = turns if turns>min_turns else min_turns
+                if cost_name == 'clay':
+                    needed_clay = self.blueprint[bot_name][cost_name] - self.clay
+                    if needed_clay > 0:
+                        turns = np.ceil(needed_clay / self.clay_bots)
+                        min_turns = turns if turns > min_turns else min_turns
+                if cost_name == 'obsidian':
+                    needed_obsidian = self.blueprint[bot_name][cost_name] - self.obsidian
+                    if needed_obsidian > 0:
+                        turns = np.ceil(needed_obsidian / self.obsidian_bots)
+                        min_turns = turns if turns > min_turns else min_turns
+            return int(min_turns)
+
+        def build(self):
+            if self.goal == "clay bot":
+                self.clay_bots += 1
+            elif self.goal == "ore bot":
+                self.ore_bots += 1
+            elif self.goal == "geode bot":
+                self.geode_bots += 1
+            elif self.goal == "obsidian bot":
+                self.obsidian_bots += 1
+            for cost_name in self.blueprint[self.goal].keys():
+                if cost_name == 'ore':
+                    self.ore -= self.blueprint[self.goal][cost_name]
+                elif cost_name == 'clay':
+                    self.clay -= self.blueprint[self.goal][cost_name]
+                elif cost_name == 'obsidian':
+                    self.obsidian -= self.blueprint[self.goal][cost_name]
+            self.goal = None
+
+        def accomplish_goal(self):
+            turns = self.turns_til_can_afford(self.goal)
+            for i in range(turns+1):
+                self.ore += self.ore_bots
+                self.clay += self.clay_bots
+                self.obsidian += self.obsidian_bots
+                self.geode += self.geode_bots
+                self.time_remaining -= 1
+            self.build()
+
+    def find_best_blueprint_strategy(blueprint, time=24, output='quality'):
+        quality = 0
+        queue = [State(blueprint, goal=None, time_remaining=time)]
+        i = 1
+        while len(queue)>0:
+            i+=1
+            if i%100==0:
+                if i%1000==0:
+                    print(f"#{blueprint['num']}: {len(queue)} states")
+                queue = sorted(queue, key=lambda i: i.geode, reverse=True)
+            cur_state = queue.pop(0)
+            if cur_state.potential_geode() > quality:
+                quality = cur_state.potential_geode()
+            if cur_state.max_potential_geode() > quality:
+                for possible_next_bot in cur_state.get_next_bots():
+                    new_state = State(blueprint, goal=possible_next_bot, time_remaining=cur_state.time_remaining,
+                                        bots=cur_state.get_bots(), material=cur_state.get_material())
+                    new_state.accomplish_goal()
+                    queue.append(new_state)
+        print(f"quality of BP#{blueprint['num']}: {quality*blueprint['num']}")
+        if output == 'quality':
+            return quality*blueprint["num"]
+        elif output == 'geode':
+            return quality
+
+    total_quality = 0
+    for bp in blueprints:
+        total_quality += find_best_blueprint_strategy(bp)
+    print(f"part1 {total_quality}")
+
+    quality_multiple = 1
+    for bp in blueprints[0:3]:
+        quality_multiple *= find_best_blueprint_strategy(bp, time=32, output='geode')
+    print(f"part2 {quality_multiple}")
 
 
 def day20():
@@ -1728,4 +1877,4 @@ def day25():
 
 
 
-day16()
+day19()
