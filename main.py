@@ -942,12 +942,110 @@ def day16():
     for valve in valves.keys():
         if valves[valve]["rate"] > 0:
             important_valves.append(valve)
-    print(important_valves)
-    start = "AA"
-    next_list = {"AA"}
-    distances = {"AA":0}
-    while len(next_list) > 0:
-        current_valve = next_list.pop()
+    print(f"valves we are going to look at: {important_valves}")
+
+    # initialize distances map with all the neighboring zones or "infinite" dist
+    distances = dict()
+    for valve in valves.keys():
+        distances[valve] = {valve: 0}
+        for other_valve in valves.keys():
+            if other_valve in valves[valve]["connections"]:
+                distances[valve][other_valve] = 1
+            else:
+                distances[valve][other_valve] = 9999999
+
+    def find_distances(start_node):
+        queue = list(valves[start_node]["connections"])
+        visited = set()
+        while len(queue) > 0:
+            queue = sorted(queue, key=lambda i: distances[start_node][i])
+            v = queue.pop(0)
+            for v_neighbor in valves[v]["connections"]:
+                if distances[start_node][v_neighbor] > distances[start_node][v] + 1:
+                    distances[start_node][v_neighbor] = distances[start_node][v] + 1
+                if v_neighbor not in visited and v_neighbor not in queue:
+                    queue.append(v_neighbor)
+            visited.add(v)
+
+    find_distances("AA")
+    for valve in important_valves:
+        find_distances(valve)
+
+    # simplified the problem by determining the distances between all the important positions, we can ignore all the
+    # inbetween steps and just focus on how long it takes to move between different valve positions
+
+    decision_paths = [["AA"]]
+
+    def time_cost(path):
+        t = 0
+        for i in range(1, len(path)):
+            t+= 1 + distances[path[i-1]][path[i]]
+        return t
+
+    def get_score(path, part1=True):
+        score = 0
+        time_remaining = 30 if part1 else 26
+        for i in range(1, len(path)):
+            time_remaining -= distances[path[i-1]][path[i]] + 1
+            score += valves[path[i]]["rate"]*time_remaining
+        return score
+
+    best_score = 0
+    while len(decision_paths) > 0:
+        decision_paths = sorted(decision_paths, key=lambda i: get_score(i), reverse=True)
+        cur_path = decision_paths.pop(0)
+        if get_score(cur_path)>best_score:
+            best_score = get_score(cur_path)
+            print(best_score)
+        new_paths = []
+        for valve in important_valves:
+            if valve not in cur_path:
+                new_path = cur_path + [valve]
+                new_paths.append(new_path)
+        for path in new_paths:
+            if time_cost(path) <= 30:
+                decision_paths.append(path)
+
+    print(f"part1: {best_score}")
+
+    # reset for part2
+    best_score = 0
+    decision_paths = [[["AA"],["AA"]]]
+
+    def get_score_part2(paths):
+        return sum(map(lambda i: get_score(i, part1=False), paths))
+
+    j = 0
+    while len(decision_paths) > 0:
+        j+=1
+        if j%10000==0:
+            print(f"number of decisions to think about: {len(decision_paths)}")
+            decision_paths = sorted(decision_paths, key=lambda i: get_score_part2(i), reverse=True)
+        cur_paths = decision_paths.pop(0)
+        if get_score_part2(cur_paths)>best_score:
+            best_score = get_score_part2(cur_paths)
+            print(f"best_score {best_score}")
+        new_paths = []
+        for valve in important_valves:
+            if valve not in cur_paths[0] and valve not in cur_paths[1]:
+                new_path_me = cur_paths[0] + [valve]
+                new_path_elephant = cur_paths[1] + [valve]
+                new_paths.append([new_path_me, cur_paths[1]])
+                new_paths.append([cur_paths[0], new_path_elephant])
+        for path in new_paths:
+            if max(time_cost(path[0]),time_cost(path[1]))<= 30:
+                decision_paths.append(path)
+    #2797 too low 3338 too high
+    #didnt really ever optimize this enough, just ran it until a good score came out lol
+
+
+
+
+
+
+
+
+
 
 
 def day19():
@@ -1630,4 +1728,4 @@ def day25():
 
 
 
-day25()
+day16()
