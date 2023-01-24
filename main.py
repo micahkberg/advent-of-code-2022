@@ -1875,6 +1875,3 @@ def day25():
     #attempt 2 -2-0=11=21-2201-0101
     #attempt 3 2-121-=10=200==2==21 #switching to binary search worked!
 
-
-
-day19()
