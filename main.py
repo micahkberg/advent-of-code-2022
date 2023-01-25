@@ -864,7 +864,7 @@ def day15():
         if ranges[i][0]<=ranges[i][1]:
             cant_be+= ranges[i][1]-ranges[i][0]+1
     cant_be -= len(on_target_row)
-    print(cant_be)
+    print(f"part1: {cant_be}")
     # part 1 try 1 4999656 too low, double counting beacons and not correctly evaluating overlapping segments
     # part 1 try 2 5374697 too high, forgot to take off test row value
     # part 1 try 3 5142231
@@ -880,24 +880,27 @@ def day15():
         circles.append(Zone(new_circle))
 
 
-    for quadruble in itertools.combinations(circles, 4):
+
+    potential_matches = []
+    for triple in itertools.combinations(circles, 3):
         intersection_count = 0
         adjacent_count = 0
-        for pair in itertools.combinations(quadruble, 2):
+        for pair in itertools.combinations(triple, 2):
             if intersect(pair[0],pair[1]):
                 intersection_count+=1
             if adjacent(pair[0],pair[1]):
                 adjacent_count+=1
-        if intersection_count>8:
+        if adjacent_count>0 and intersection_count>0:
+            potential_matches.append(triple)
             print(f"{intersection_count}, {adjacent_count}")
 
+    for match in potential_matches:
+        print("match")
+        for circle in match:
+            print(f"c: {circle.center}, r: {circle.radius}")
 
 
 
-
-
-
-day15()
 
 def day16():
     tunnel_info = read_input("day16.txt")
@@ -919,5 +922,153 @@ def day16():
     distances = {"AA":0}
     while len(next_list) > 0:
         current_valve = next_list.pop(0)
+
+
+def day17():
+    jets = read_input("day17.txt")[0]
+
+    shape_types = ["-",
+                   "+",
+                   "L",
+                   "|",
+                   "o"]
+
+    # initialize state of system
+    floor_blocks = {(i, -1) for i in range(7)}
+    day17.max_height = 0
+
+    def calc_new_max_height():
+        for tile in floor_blocks:
+            if tile[1]+1>day17.max_height:
+                day17.max_height = tile[1]+1
+
+    class Block:
+        def __init__(self, shape):
+            self.falling = True
+            self.shape = {"-": [(2,3), (3,3), (4,3), (5,3)],
+                            "+": [(2,4), (3,4), (4,4), (3,5), (3,3)],
+                            "L": [(2,3), (3,3), (4,3), (4,4), (4,5)],
+                            "|": [(2,3), (2,4), (2,5), (2,6)],
+                            "o": [(2,3), (3,3), (2,4), (3,4)]}[shape]
+            for i in range(len(self.shape)):
+                self.shape[i]=(self.shape[i][0],self.shape[i][1]+day17.max_height)
+
+        def blow(self, dir):
+            vec = -1 if dir == "<" else 1
+            new_shape = []
+            for rock in self.shape:
+                new_block = (rock[0]+vec,rock[1])
+                if not 0<=new_block[0]<=6:
+                    return "collide"
+                elif new_block in floor_blocks:
+                    return "collide"
+                new_shape.append(new_block)
+            self.shape = new_shape.copy()
+
+        def fall(self):
+            new_shape = []
+            for block in self.shape:
+                new_block = (block[0],block[1]-1)
+                if new_block in floor_blocks:
+                    self.falling = False
+                    self.freeze()
+                    return "collide"
+                new_shape.append(new_block)
+            self.shape = new_shape.copy()
+
+        def freeze(self):
+            global max_height
+            for block in self.shape:
+                floor_blocks.add(block)
+            calc_new_max_height()
+
+    def view(cur_block):
+        for y in range(day17.max_height + 10, day17.max_height - 5, -1):
+            cur_line = "|"
+            for x in range(7):
+                if (x,y) in floor_blocks:
+                    cur_line+="#"
+                elif (x,y) in cur_block.shape:
+                    cur_line+="@"
+                else:
+                    cur_line+="."
+            cur_line+="|"
+            print(cur_line)
+
+
+
+
+    turn = 0
+    for rock in range(2022):
+
+        new_rock = Block(shape_types[rock%5])
+        #print(rock)
+
+        #view(new_rock)
+        #print("\n")
+
+        while new_rock.falling == True:
+            new_rock.blow(jets[turn%len(jets)])
+            new_rock.fall()
+            turn += 1
+            #view(new_rock)
+            #print("\n")
+
+    print(day17.max_height)
+    #part 1 try 1 3084 too low (blowing wrong way)
+    # for part 2, i need to figure out at what point the cycle keeps repeating and then just multiply
+
+    # initialize state of system
+    floor_blocks = {(i, -1) for i in range(7)}
+    day17.max_height = 0
+    prev_height = 0
+    turn = 0
+    changes_in_height = [1,1,1,-1,-1,-1]
+    while len(set(changes_in_height[-5:]))>1:
+        for rock in range(len(shape_types)):
+            new_rock = Block(shape_types[rock % 5])
+            while new_rock.falling:
+                new_rock.blow(jets[turn%len(jets)])
+                new_rock.fall()
+                turn += 1
+        changes_in_height.append(day17.max_height-prev_height)
+        prev_height = day17.max_height
+
+
+
+def day18():
+    cubes_raw = read_input("day18.txt")
+    cubes = []
+    for line in cubes_raw:
+        new_cube = tuple(map(int, line.split(',')))
+        cubes.append(new_cube)
+    exposed_sides = 0
+    dirs = [(-1,0,0),(1,0,0),(0,1,0),(0,-1,0),(0,0,-1),(0,0,1)]
+    for cube in cubes:
+        for dir in dirs:
+            if (cube[0]+dir[0],cube[1]+dir[1],cube[2]+dir[2]) not in cubes:
+                exposed_sides+=1
+    print(exposed_sides)
+
+    # part 2
+    air = {}
+    for cube in cubes:
+        for dir in dirs:
+            if (cube[0] + dir[0], cube[1] + dir[1], cube[2] + dir[2]) not in cubes:
+                exposed_sides += 1
+                air.add((cube[0] + dir[0], cube[1] + dir[1], cube[2] + dir[2]))
+
+
+
+
+
+
+
+
+
+def day19():
+    inp = read_input("day19.txt")
+
+    # ore robots
 
 
