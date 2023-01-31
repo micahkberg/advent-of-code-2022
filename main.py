@@ -1,8 +1,12 @@
 import numpy as np
 
+"""
+Many apologies to myself in the future for deciding to put these all in the same .py
+"""
+
 
 def read_input(fname, strip=True):
-    f = open(fname, "r")
+    f = open("./inputs/"+fname, "r")
     if strip:
         contents = f.read().strip().split("\n")
     else:
@@ -378,7 +382,7 @@ def day10():
 
 
 def day11():
-    f = open("day11.txt", "r")
+    f = open("inputs/day11.txt", "r")
     contents = f.read().split("\n\n")
     f.close()
     monkey_texts = list(map(lambda i: i.split("\n"), contents))
