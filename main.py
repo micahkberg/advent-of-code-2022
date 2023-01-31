@@ -1034,6 +1034,144 @@ def day16():
     # probably could note the best score for certain positions in certain times and ignore worse situations
 
 
+def day17():
+    jets = read_input("day17.txt")[0]
+
+    shape_types = ["-",
+                   "+",
+                   "L",
+                   "|",
+                   "o"]
+
+    def calc_new_max_height():
+        for tile in floor_blocks:
+            if tile[1]+1>day17.max_height:
+                day17.max_height = tile[1]+1
+
+    class Block:
+        def __init__(self, shape):
+            self.falling = True
+            self.shape = {"-": [(2, 3), (3, 3), (4, 3), (5, 3)],
+                            "+": [(2, 4), (3, 4), (4, 4), (3, 5), (3, 3)],
+                            "L": [(2, 3), (3, 3), (4, 3), (4, 4), (4, 5)],
+                            "|": [(2, 3), (2, 4), (2, 5), (2, 6)],
+                            "o": [(2, 3), (3, 3), (2, 4), (3, 4)]}[shape]
+            for i in range(len(self.shape)):
+                self.shape[i] = (self.shape[i][0], self.shape[i][1]+day17.max_height)
+
+        def blow(self, direction):
+            vec = -1 if direction == "<" else 1
+            new_shape = []
+            for tile in self.shape:
+                new_block = (tile[0]+vec, tile[1])
+                if not 0 <= new_block[0] <= 6:
+                    return "collide"
+                elif new_block in floor_blocks:
+                    return "collide"
+                new_shape.append(new_block)
+            self.shape = new_shape.copy()
+
+        def fall(self):
+            new_shape = []
+            for block in self.shape:
+                new_block = (block[0], block[1]-1)
+                if new_block in floor_blocks:
+                    self.falling = False
+                    self.freeze()
+                    return "collide"
+                new_shape.append(new_block)
+            self.shape = new_shape.copy()
+
+        def freeze(self):
+            for block in self.shape:
+                if block[1]+1>day17.max_height:
+                    day17.max_height = block[1]+1
+                floor_blocks.add(block)
+            #calc_new_max_height()
+
+    def view(cur_block):
+        for y in range(day17.max_height + 2, day17.max_height - 10, -1):
+            cur_line = "|"
+            for x in range(7):
+                if (x, y) in floor_blocks:
+                    cur_line+="#"
+                elif (x, y) in cur_block.shape:
+                    cur_line+="@"
+                else:
+                    cur_line+="."
+            cur_line += "|"
+            print(cur_line)
+
+
+    # initialize state of system
+    floor_blocks = {(i, -1) for i in range(7)}
+    day17.max_height = 0
+    turn = 0
+
+    for rock in range(2022):
+
+        new_rock = Block(shape_types[rock%5])
+
+        #view(new_rock)
+        #print("\n")
+
+        while new_rock.falling:
+            new_rock.blow(jets[turn%len(jets)])
+            new_rock.fall()
+            turn += 1
+            #view(new_rock)
+            #print("\n")
+
+    print(day17.max_height)
+    #part 1 try 1 3084 too low (blowing wrong way)
+    # for part 2, i need to figure out at what point the cycle keeps repeating and then just multiply
+
+    # initialize state of system
+    floor_blocks = {(i, -1) for i in range(7)}
+    day17.max_height = last_max_height = 0
+    turn = last_turn_of_last_rock_cycle = 0
+    rock_count = last_rock_count = 0
+    cycle_0_rock_count = None
+    cycle_0_height = None
+    cycle_1_rock_count = None
+    cycle_1_height = None
+    goal = 1000000000000
+    while rock_count<goal:
+        if rock_count % 1000 == 0:
+            print(rock_count)
+        for rock in shape_types:
+            new_rock = Block(rock)
+            rock_count += 1
+            while new_rock.falling:
+                new_rock.blow(jets[turn%len(jets)])
+                new_rock.fall()
+                turn += 1
+
+        if last_turn_of_last_rock_cycle % len(jets) > turn % len(jets):
+            print(f"rocks {rock_count}, rocks delta: {rock_count-last_rock_count} h: {day17.max_height}, h_delta: {day17.max_height - last_max_height}")
+            if not cycle_0_rock_count:
+                cycle_0_rock_count = rock_count
+                cycle_0_height = day17.max_height
+            elif not cycle_1_rock_count and cycle_0_rock_count:
+                print("starting jump")
+                # now do a big mega push that jumps ahead a bunch of cycles.
+                cycle_1_rock_count = rock_count
+                cycle_1_height = day17.max_height
+                dist_remaining = goal - cycle_1_rock_count
+                number_of_cycles_in_dist_remaining = dist_remaining//(cycle_1_rock_count-cycle_0_rock_count)
+                rock_count += number_of_cycles_in_dist_remaining*(cycle_1_rock_count-cycle_0_rock_count)
+                day17.max_height += number_of_cycles_in_dist_remaining*(cycle_1_height-cycle_0_height)
+                # slide all of our blocks on up
+                size_of_jump = day17.max_height - cycle_1_height
+                new_blocks = set()
+                for block in floor_blocks:
+                    new_blocks.add((block[0],block[1]+size_of_jump))
+                floor_blocks = new_blocks
+                print("jump finished, running last leg")
+        last_turn_of_last_rock_cycle = turn
+    print(day17.max_height)
+
+
 def day18_from_scratch():
     inp = read_input("day18.txt")
     lava_cubes = set()
